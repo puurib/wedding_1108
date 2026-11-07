@@ -35,7 +35,7 @@ function reading(s) {
   if(s.id===1)return cover(s);
   const groups=s.groups;
   let count=groups.filter(g=>!g.wide).length;
-  if(count>5)count=2;
+  if(s.priority)count=3;else if(count>5)count=2;
   const grid=el('div',`cards cols-${count} read-layout-${s.id}`);
   groups.forEach((group,gi)=>{
     const card=el('article','content-card'+(group.wide?' wide':''));
@@ -60,7 +60,7 @@ function pptLayout(s){
  wrap.append(canvas,el('p','slide-note','PPT의 배치와 사진 비율을 재현한 보기입니다. 작은 화면에서는 ‘읽기 편하게’를 사용하거나 사진을 눌러 확대하세요.'));return wrap;
 }
 function navButton(s){
- const b=el('button','toc-item'+(s.id===current?' active':''));b.type='button';b.append(el('span','',String(s.id).padStart(2,'0')),document.createTextNode(s.title));b.setAttribute('aria-label',`${s.id}페이지 ${s.title}`);if(s.id===current)b.setAttribute('aria-current','page');b.addEventListener('click',()=>{filter='all';go(s.id,true);$('toc-dialog').close();});return b;
+ const b=el('button','toc-item'+(s.priority?' priority':'')+(s.id===current?' active':''));b.type='button';b.append(el('span','',s.priority?'꼭':String(s.id).padStart(2,'0')),document.createTextNode(s.title));b.setAttribute('aria-label',`${s.id}페이지 ${s.title}`);if(s.id===current)b.setAttribute('aria-current','page');b.addEventListener('click',()=>{filter='all';go(s.id,true);$('toc-dialog').close();});return b;
 }
 function renderToc(){
  const q=search.trim().toLocaleLowerCase();let last='';const desktop=document.createDocumentFragment();const mobile=document.createDocumentFragment();let found=0;
@@ -70,18 +70,19 @@ function renderToc(){
  $('category-tabs').replaceChildren(...categories.map(c=>{const b=el('button','category'+(filter===c.id?' active':''),c.label);b.type='button';b.setAttribute('aria-pressed',String(filter===c.id));b.addEventListener('click',()=>{filter=c.id;search='';$('search').value='';const first=slides.find(s=>filter==='all'||s.category===filter);go(first.id,true);});return b;}));
 }
 function go(n,scroll=false){
- current=Math.max(1,Math.min(slides.length,n));const s=slides[current-1];history.replaceState(null,'',`#page=${current}`);document.title=`${s.title} · 웨딩 촬영 시안`;
- $('breadcrumb').textContent=`${s.categoryLabel} / ${String(current).padStart(2,'0')}`;$('page-kicker').textContent=s.kicker;$('page-title').textContent=s.title;$('page-subtitle').textContent=s.subtitle;$('page-badge').textContent=String(current).padStart(2,'0');
- $('reader').replaceChildren(mode==='reading'?reading(s):pptLayout(s));$('page-count').textContent=`${String(current).padStart(2,'0')} / ${slides.length}`;$('progress').style.width=(current/slides.length*100)+'%';$('prev').disabled=current===1;$('next').disabled=current===slides.length;$('live').textContent=`${current}페이지 ${s.title}`;
+ const pos=slides.findIndex(s=>s.id===Number(n));const index=pos<0?0:pos;const s=slides[index];current=s.id;history.replaceState(null,'',`#page=${current}`);document.title=`${s.title} · 웨딩 촬영 시안`;
+ $('breadcrumb').textContent=`${s.categoryLabel} / ${s.priority?'꼭 남길 15장':String(current).padStart(2,'0')}`;$('page-kicker').textContent=s.kicker;$('page-title').textContent=s.title;$('page-subtitle').textContent=s.subtitle;$('page-badge').textContent=s.priority?'MUST':String(current).padStart(2,'0');
+ $('reader').replaceChildren(mode==='reading'?reading(s):pptLayout(s));$('page-count').textContent=`${String(index+1).padStart(2,'0')} / ${slides.length}`;$('progress').style.width=((index+1)/slides.length*100)+'%';$('prev').disabled=index===0;$('next').disabled=index===slides.length-1;$('live').textContent=`${current}페이지 ${s.title}`;
  renderToc();if(scroll)$('content').scrollIntoView({behavior:'smooth',block:'start'});
 }
+function step(delta){const index=slides.findIndex(s=>s.id===current);const next=slides[Math.max(0,Math.min(slides.length-1,index+delta))];go(next.id,true);}
 function setMode(m){mode=m;$('reading-mode').setAttribute('aria-pressed',String(m==='reading'));$('slide-mode').setAttribute('aria-pressed',String(m==='slide'));go(current,false);}
 $('reading-mode').addEventListener('click',()=>setMode('reading'));$('slide-mode').addEventListener('click',()=>setMode('slide'));
-$('prev').addEventListener('click',()=>go(current-1,true));$('next').addEventListener('click',()=>go(current+1,true));$('print').addEventListener('click',()=>window.print());
+$('prev').addEventListener('click',()=>step(-1));$('next').addEventListener('click',()=>step(1));$('print').addEventListener('click',()=>window.print());
 $('search').addEventListener('input',e=>{search=e.target.value;renderToc();});
 $('toc-open').addEventListener('click',()=>$('toc-dialog').showModal());$('toc-close').addEventListener('click',()=>$('toc-dialog').close());$('photo-close').addEventListener('click',()=>$('photo-dialog').close());
 for(const id of ['toc-dialog','photo-dialog'])$(id).addEventListener('click',e=>{if(e.target===$(id)){const r=$(id).getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$(id).close();}});
 window.addEventListener('hashchange',()=>{const m=location.hash.match(/page=(\d+)/);if(m)go(Number(m[1]),true);});
-document.addEventListener('keydown',e=>{if(document.querySelector('dialog[open]')||['INPUT','TEXTAREA'].includes(document.activeElement.tagName))return;if(e.key==='ArrowLeft'){e.preventDefault();go(current-1,true);}if(e.key==='ArrowRight'){e.preventDefault();go(current+1,true);}});
+document.addEventListener('keydown',e=>{if(document.querySelector('dialog[open]')||['INPUT','TEXTAREA'].includes(document.activeElement.tagName))return;if(e.key==='ArrowLeft'){e.preventDefault();step(-1);}if(e.key==='ArrowRight'){e.preventDefault();step(1);}});
 const match=location.hash.match(/page=(\d+)/);go(match?Number(match[1]):1,false);
 })();

@@ -6,3 +6,5 @@
 
 .page-heading h2,.content-card h3,.card-text{word-break:keep-all}
 .cover-copy h3{white-space:pre-line}
+
+.toc-item.priority{color:#85553d;font-weight:700;border:1px solid #d8b9a2;margin-bottom:8px;background:#f1e5d9}.toc-item.priority span{background:#a4785f;color:#fff;padding:2px 5px;border-radius:4px;font-family:inherit}.toc-item.priority.active{background:#e9d7c5;border-color:#a4785f}.read-layout-42 .content-card{border-top:3px solid #ad836b}.read-layout-42 .card-text.tag{background:#eee0d2;color:#805239}.read-layout-42 .photo-button img{height:320px}#page-badge{max-width:130px;font-size:32px}@media(max-width:650px){.read-layout-42 .photo-button img{height:245px}.read-layout-42 .content-card h3{font-size:13px}#page-badge{font-size:23px}}
